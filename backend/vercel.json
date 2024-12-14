@@ -23,5 +23,11 @@
         { "key": "Access-Control-Max-Age", "value": "86400" }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/transcribe": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
 }

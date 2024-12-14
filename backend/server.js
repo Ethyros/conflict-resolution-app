@@ -4,7 +4,11 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { OpenAI } = require('openai');
 const multer = require('multer');
-const upload = multer();
+const upload = multer({
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 const fs = require('fs');
 const path = require('path');
 
