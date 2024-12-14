@@ -47,35 +47,29 @@ export const analyzeText = async (text, mode, selectedFramework = null) => {
 export const transcribeAudio = async (audioFile) => {
   try {
     const formData = new FormData();
-    formData.append('audioFile', audioFile);
-    
+    formData.append('audioFile', audioFile, 'audio.webm');
+   
     console.log('Making transcription request:', {
       url: `${API_URL}/api/transcribe`,
       fileSize: audioFile.size,
       fileType: audioFile.type
     });
-    
+   
     const response = await fetch(`${API_URL}/api/transcribe`, {
       method: 'POST',
-      mode: 'cors', // Explicitly set CORS mode
-      credentials: 'include', // Include credentials if needed
-      body: formData
+      mode: 'cors',
+      credentials: 'omit',  // Changed from 'include' to match analyze endpoint
+      body: formData  // Don't set Content-Type header - browser will set it with boundary
     });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'No error details available');
       throw new Error(`Transcription failed (${response.status}): ${errorText}`);
     }
-
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Transcription error:', {
-      message: error.message,
-      status: error.status,
-      url: `${API_URL}/api/transcribe`,
-      stack: error.stack
-    });
+    console.error('Transcription error:', error);
     throw error;
   }
 };
