@@ -166,6 +166,10 @@ app.options('/api/analyze', (req, res) => {
 
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.json({ status: 'Server is running' });
+});
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
