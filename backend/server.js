@@ -180,15 +180,14 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
       return res.status(400).json({ error: 'No audio file provided' });
     }
 
-    const tempFilePath = path.join(__dirname, 'temp.webm');
-    fs.writeFileSync(tempFilePath, req.file.buffer);
-
     const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(tempFilePath),
+      file: {
+        data: req.file.buffer,
+        name: "audio.webm",
+      },
       model: "whisper-1",
     });
 
-    fs.unlinkSync(tempFilePath);
     res.json({ text: transcription.text });
   } catch (error) {
     console.error('Transcribe error:', error);
