@@ -186,6 +186,7 @@ const replicate = new Replicate({
 
 app.post('/api/upload-audio', async (req, res) => {
   try {
+    console.log('Starting audio upload...'); // Add this line
     const jsonResponse = await handleUpload({
       body: req.body,
       request: req,
