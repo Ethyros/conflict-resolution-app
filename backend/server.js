@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const Replicate = require('replicate');
 const { OpenAI } = require('openai');
 const multer = require('multer');
 const upload = multer({
@@ -178,6 +179,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN
+});
+
 app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
   try {
     if (!req.file) {
@@ -190,15 +195,43 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
       size: req.file.size
     });
 
-    const transcription = await openai.audio.transcriptions.create({
-      file: await openai.files.create({
-        file: req.file.buffer,
-        purpose: 'audio-transcription'
-      }),
-      model: "whisper-1",
-    });
+    try {
+      // Convert buffer to base64
+      const base64Audio = req.file.buffer.toString('base64');
+      const dataURI = `data:${req.file.mimetype};base64,${base64Audio}`;
 
-    res.json({ text: transcription.text });
+      // Try Replicate first
+      const output = await replicate.run(
+        "openai/whisper:91ee9c0c3df30478510ff8c8a3a545add1ad0259ad3a9f78fba57fbc05ee64f7",
+        {
+          input: {
+            audio: dataURI,
+            model: "large-v2",
+            translate: false,
+            language: "en",
+            temperature: 0,
+            patience: 1
+          }
+        }
+      );
+
+      console.log('Replicate transcription completed');
+      res.json({ text: output.transcription });
+
+    } catch (replicateError) {
+      console.log('Replicate failed, falling back to OpenAI:', replicateError);
+      
+      // Fallback to OpenAI
+      const transcription = await openai.audio.transcriptions.create({
+        file: await openai.files.create({
+          file: req.file.buffer,
+          purpose: 'audio-transcription'
+        }),
+        model: "whisper-1",
+      });
+
+      res.json({ text: transcription.text });
+    }
   } catch (error) {
     console.error('Transcribe error:', error);
     res.status(500).json({ error: error.message });
