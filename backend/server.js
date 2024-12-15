@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const Replicate = require('replicate');
+const { handleUpload } = require('@vercel/blob/client');
 const { OpenAI } = require('openai');
 const multer = require('multer');
 const upload = multer({
@@ -183,30 +184,49 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN
 });
 
-app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
+app.post('/api/upload-audio', async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No audio file provided' });
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: req,
+      onBeforeGenerateToken: async (pathname) => {
+        return {
+          allowedContentTypes: ['audio/webm', 'audio/wav', 'audio/mpeg'],
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        console.log('Audio upload completed:', blob);
+      },
+    });
+    
+    res.json(jsonResponse);
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/transcribe', async (req, res) => {
+  try {
+    const { audioUrl } = req.body;
+    if (!audioUrl) {
+      return res.status(400).json({ error: 'No audio URL provided' });
     }
 
     console.log('Attempting Replicate transcription...');
-    console.log('File received:', {
-      mimetype: req.file.mimetype,
-      size: req.file.size
-    });
 
     const output = await replicate.run(
       "openai/whisper:c48d13b4c4148ddc6abfa85a0778cc421fd342c6ac1bcd6f3677d73c1c16ebf5",
       {
         input: {
-          audio: req.file.buffer,
+          audio: audioUrl,
           model: "large-v2",
           language: "en"
         }
       }
     );
 
-    console.log('Transcription output:', output);
+    console.log('Transcription completed');
     res.json({ text: output.transcription });
 
   } catch (error) {
