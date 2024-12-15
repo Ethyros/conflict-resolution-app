@@ -189,54 +189,28 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
       return res.status(400).json({ error: 'No audio file provided' });
     }
 
-    console.log('Received file:', {
-      fieldname: req.file.fieldname,
+    console.log('Attempting Replicate transcription...');
+    console.log('File received:', {
       mimetype: req.file.mimetype,
       size: req.file.size
     });
 
-    try {
-      // Convert buffer to base64
-      const base64Audio = req.file.buffer.toString('base64');
-      const dataURI = `data:${req.file.mimetype};base64,${base64Audio}`;
-
-      console.log('Attempting Replicate transcription...');
-      
-      // Try Replicate first
-      const output = await replicate.run(
-        "openai/whisper:91ee9c0c3df30478510ff8c8a3a545add1ad0259ad3a9f78fba57fbc05ee64f7",
-        {
-          input: {
-            audio: dataURI,
-            model: "large-v2",
-            translate: false,
-            language: "en",
-            temperature: 0,
-            patience: 1
-          }
+    const output = await replicate.run(
+      "openai/whisper:c48d13b4c4148ddc6abfa85a0778cc421fd342c6ac1bcd6f3677d73c1c16ebf5",
+      {
+        input: {
+          audio: req.file.buffer,
+          model: "large-v2",
+          language: "en"
         }
-      );
+      }
+    );
 
-      console.log('Successfully used Replicate for transcription');
-      res.json({ text: output.transcription, service: 'replicate' });
+    console.log('Transcription output:', output);
+    res.json({ text: output.transcription });
 
-    } catch (replicateError) {
-      console.log('Replicate failed, falling back to OpenAI:', replicateError);
-      
-      // Fallback to OpenAI
-      const transcription = await openai.audio.transcriptions.create({
-        file: await openai.files.create({
-          file: req.file.buffer,
-          purpose: 'audio-transcription'
-        }),
-        model: "whisper-1",
-      });
-
-      console.log('Successfully used OpenAI fallback');
-      res.json({ text: transcription.text, service: 'openai' });
-    }
   } catch (error) {
-    console.error('Transcribe error:', error);
+    console.error('Transcription error:', error);
     res.status(500).json({ error: error.message });
   }
 });
