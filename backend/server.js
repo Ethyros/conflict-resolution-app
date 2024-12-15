@@ -7,7 +7,7 @@ const { OpenAI } = require('openai');
 const multer = require('multer');
 const upload = multer({
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 25 * 1024 * 1024 // 25MB limit
   }
 });
 const fs = require('fs');
@@ -200,6 +200,8 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
       const base64Audio = req.file.buffer.toString('base64');
       const dataURI = `data:${req.file.mimetype};base64,${base64Audio}`;
 
+      console.log('Attempting Replicate transcription...');
+      
       // Try Replicate first
       const output = await replicate.run(
         "openai/whisper:91ee9c0c3df30478510ff8c8a3a545add1ad0259ad3a9f78fba57fbc05ee64f7",
@@ -215,8 +217,8 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
         }
       );
 
-      console.log('Replicate transcription completed');
-      res.json({ text: output.transcription });
+      console.log('Successfully used Replicate for transcription');
+      res.json({ text: output.transcription, service: 'replicate' });
 
     } catch (replicateError) {
       console.log('Replicate failed, falling back to OpenAI:', replicateError);
@@ -230,7 +232,8 @@ app.post('/api/transcribe', upload.single('audioFile'), async (req, res) => {
         model: "whisper-1",
       });
 
-      res.json({ text: transcription.text });
+      console.log('Successfully used OpenAI fallback');
+      res.json({ text: transcription.text, service: 'openai' });
     }
   } catch (error) {
     console.error('Transcribe error:', error);
