@@ -1,18 +1,6 @@
-// Test change
 const express = require('express');
-const cors = require('cors');
 const dotenv = require('dotenv');
-const Replicate = require('replicate');
-const { handleUpload } = require('@vercel/blob/client');
 const { OpenAI } = require('openai');
-const multer = require('multer');
-const upload = multer({
-  limits: {
-    fileSize: 25 * 1024 * 1024 // 25MB limit
-  }
-});
-const fs = require('fs');
-const path = require('path');
 
 const HARVARD_PROMPT = `As an expert mediator using the Harvard Negotiation Framework, analyze this workplace conflict:
 "{{text}}"
@@ -59,9 +47,7 @@ Specific, doable actions that could help meet the needs:
 
 ### NVC EXPRESSION
 Put it all together:
-"When I observe [specific behavior], I feel [emotion] because my need for [need] is not being met. Would you be willing to [specific request]?"
-
-Do not deviate from this format. Each section must be present and clearly labeled.`;
+"When I observe [specific behavior], I feel [emotion] because my need for [need] is not being met. Would you be willing to [specific request]?"`;
 
 const SOLUTION_FOCUSED_PROMPT = `Using ONLY Solution-Focused techniques, analyze this situation:
 "{{text}}"
@@ -88,12 +74,7 @@ Rate the current situation from 1-10:
 List 2-3 specific, small actions that could:
 - Build on what's already working
 - Move toward the preferred future
-- Create positive momentum
-
-Remember to:
-- Focus on solutions, not problems
-- Look for existing resources and strengths
-- Keep steps small and achievable`;
+- Create positive momentum`;
 
 const ACTIVE_LISTENING_PROMPT = `Analyze this situation using ONLY Active Listening techniques:
 "{{text}}"
@@ -145,7 +126,7 @@ dotenv.config();
 
 const app = express();
 
-// Replace CORS middleware with direct headers
+// CORS configuration
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://conflict-resolution-frontend.vercel.app');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -160,16 +141,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.options('/api/analyze', (req, res) => {
-  res.header('Access-Control-Allow-Origin', 'https://conflict-resolution-frontend.vercel.app');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(200).send();
-});
-
-
-
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -180,78 +151,16 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN
-});
-
-app.post('/api/upload-audio', async (req, res) => {
-  try {
-    console.log('Starting audio upload...'); // Add this line
-    const jsonResponse = await handleUpload({
-      body: req.body,
-      request: req,
-      onBeforeGenerateToken: async (pathname) => {
-        return {
-          allowedContentTypes: ['audio/webm', 'audio/wav', 'audio/mpeg'],
-        };
-      },
-      onUploadCompleted: async ({ blob }) => {
-        console.log('Audio upload completed:', blob);
-      },
-    });
-    
-    res.json(jsonResponse);
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.post('/api/transcribe', async (req, res) => {
-  try {
-    const { audioUrl } = req.body;
-    if (!audioUrl) {
-      return res.status(400).json({ error: 'No audio URL provided' });
-    }
-
-    console.log('Attempting Replicate transcription...');
-
-    const output = await replicate.run(
-      "openai/whisper:c48d13b4c4148ddc6abfa85a0778cc421fd342c6ac1bcd6f3677d73c1c16ebf5",
-      {
-        input: {
-          audio: audioUrl,
-          model: "large-v2",
-          language: "en"
-        }
-      }
-    );
-
-    console.log('Transcription completed');
-    res.json({ text: output.transcription });
-
-  } catch (error) {
-    console.error('Transcription error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.post('/api/analyze', async (req, res) => {
   try {
     const { text, mode, framework } = req.body;
-    
-    // Log what we received
     console.log('Received request:', { text, mode, framework });
     
     let systemPrompt;
     if (framework) {
       systemPrompt = systemPrompts[framework].replace('{{text}}', text);
     } else {
-      systemPrompt = systemPrompts[mode === 'text' ? 'mediation' : mode];
-    }
-
-    if (!systemPrompt) {
-      systemPrompt = systemPrompts.mediation;
+      systemPrompt = systemPrompts['mediation'];
     }
 
     console.log('Using system prompt:', systemPrompt.substring(0, 100) + '...');
@@ -268,7 +177,6 @@ app.post('/api/analyze', async (req, res) => {
     });
     res.json({ analysis: completion.choices[0].message.content });
   } catch (error) {
-    // Log the full error
     console.error('Full error:', error);
     res.status(500).json({ 
       error: error.message,
