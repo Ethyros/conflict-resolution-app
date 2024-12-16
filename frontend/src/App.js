@@ -202,8 +202,8 @@ function App() {
           </div>
           
           <h1 className="text-3xl font-bold text-gray-800 mb-6">
-            Resolve Conflicts Better
-          </h1>
+  AI Conflict Resolution
+</h1>
           
           <div className="space-y-6">
             <div>
