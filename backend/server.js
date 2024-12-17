@@ -2,26 +2,27 @@ const express = require('express');
 const dotenv = require('dotenv');
 const { OpenAI } = require('openai');
 
-const HARVARD_PROMPT = `As an expert mediator using the Harvard Negotiation Framework, analyze this workplace conflict:
+const HARVARD_PROMPT = `Using the Harvard Negotiation Framework, analyze this conflict:
 "{{text}}"
-Provide a detailed analysis structured as follows:
-1. SITUATION ANALYSIS
-- Separate relationship issues from task/project issues
-- Identify specific behaviors and their impact on the project
-- Analyze communication patterns and breakdowns
-2. UNDERLYING INTERESTS
-- Your interests (both stated and unstated)
-- Coworker's possible interests and concerns
-- Shared interests and project goals
-3. SOLUTION OPTIONS (provide at least 3 specific solutions)
-- Quick wins for immediate improvement
-- Medium-term structural changes
-- Long-term relationship building opportunities
-4. CONCRETE ACTION PLAN
-- Specific phrases you can use in your next conversation
-- Clear steps with timing (today, this week, next week)
-- Ways to measure improvement
-Be specific, practical, and provide real examples for each suggestion.`;
+
+1. KEY ISSUES
+- Relationship vs task challenges
+- Impact on work and relationships
+
+2. INTERESTS
+- Your core interests
+- Others' likely interests
+- Common ground
+
+3. SOLUTIONS (2-3)
+- Immediate actions
+- Long-term improvements
+
+4. ACTION STEPS
+- Key phrases to use
+- Next steps timeline
+
+Keep responses concise but practical.`;
 
 const NVC_PROMPT = `You must analyze this using ONLY Nonviolent Communication (NVC). For the input: "{{text}}"
 
