@@ -160,6 +160,8 @@ app.use((req, res, next) => {
   next();
 });
 
+// just a comment
+
 app.options('/api/analyze', (req, res) => {
   res.header('Access-Control-Allow-Origin', 'https://conflict-resolution-frontend.vercel.app');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
